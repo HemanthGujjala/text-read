@@ -1,102 +1,120 @@
-const word = document.getElementById("word");
-const text = document.getElementById("text");
-const scoreElement = document.getElementById("score");
-const timeElement = document.getElementById("time");
-const endgameElement = document.getElementById("end-game-container");
-const settingsButton = document.getElementById("settings-btn");
-const settings = document.getElementById("settings");
-const settingsForm = document.getElementById("settings-form");
-const difficultySelect = document.getElementById("difficulty");
+const main = document.querySelector("main");
+const voicesSelect = document.getElementById("voices");
+const textarea = document.getElementById("text");
+const readButton = document.getElementById("read");
+const toggleButton = document.getElementById("toggle");
+const closeButton = document.getElementById("close");
 
-// List of words for game
-const words = [
-  "sigh",
-  "tense",
-  "airplane",
-  "ball",
-  "pies",
-  "juice",
-  "warlike",
-  "bad",
-  "north",
-  "dependent",
-  "steer",
-  "silver",
-  "highfalutin",
-  "superficial",
-  "quince",
-  "eight",
-  "feeble",
-  "admit",
-  "drag",
-  "loving",
+const data = [
+  {
+    image: "drink",
+    text: "I'm Thirsty",
+  },
+  {
+    image: "food",
+    text: "I'm Hungry",
+  },
+  {
+    image: "tired",
+    text: "I'm Tired",
+  },
+  {
+    image: "hurt",
+    text: "I'm Hurt",
+  },
+  {
+    image: "happy",
+    text: "I'm Happy",
+  },
+  {
+    image: "angry",
+    text: "I'm Angry",
+  },
+  {
+    image: "sad",
+    text: "I'm Sad",
+  },
+  {
+    image: "scared",
+    text: "I'm Scared",
+  },
+  {
+    image: "outside",
+    text: "I Want To Go Outside",
+  },
+  {
+    image: "home",
+    text: "I Want To Go Home",
+  },
+  {
+    image: "school",
+    text: "I Want To Go To School",
+  },
+  {
+    image: "grandma",
+    text: "I Want To Go To Grandmas",
+  },
 ];
 
-let randomWord;
-let score = 0;
-let time = 10;
-// let difficulty = "medium";
-let difficulty =
-  localStorage.getItem("difficulty") !== null
-    ? localStorage.getItem("difficulty")
-    : "medium";
-
-const timeInterval = setInterval(updateTime, 1000);
-
-function getRandomWord() {
-  return words[Math.floor(Math.random() * words.length)];
-}
-
-function addWordToDom() {
-  randomWord = getRandomWord();
-  word.innerText = randomWord;
-}
-
-function updateScore() {
-  score++;
-  scoreElement.innerText = score;
-}
-
-function updateTime() {
-  time--;
-  timeElement.innerText = time + "s";
-  if (time === 0) {
-    clearInterval(timeInterval);
-    gameOver();
-  }
-}
-
-function gameOver() {
-  endgameElement.innerHTML = `
-    <h1>Time ran out</h1>
-    <p>Your final score is ${score}</p>
-    <button onclick="history.go(0)">Play Again</button>
+function createBox(item) {
+  const box = document.createElement("div");
+  const { image, text } = item;
+  box.classList.add("box");
+  box.innerHTML = `
+    <img src='https://github.com/bradtraversy/vanillawebprojects/blob/master/speech-text-reader/img/${image}.jpg?raw=true' alt="${text}"/>
+    <p class="info">${text}</p>
     `;
-  endgameElement.style.display = "flex";
+  box.addEventListener("click", () => handleSpeech(text, box));
+  main.appendChild(box);
 }
 
-text.addEventListener("input", (e) => {
-  const insertedText = e.target.value;
-  if (insertedText === randomWord) {
-    e.target.value = "";
-    addWordToDom();
-    updateScore();
-    if (difficulty === "hard") time += 2;
-    else if (difficulty === "medium") time += 3;
-    else time += 5;
-    updateTime();
-  }
+data.forEach(createBox);
+
+let voices = [];
+
+function getVoices() {
+  voices = speechSynthesis.getVoices();
+  voices.forEach((voice) => {
+    const option = document.createElement("option");
+    option.value = voice.name;
+    option.innerText = `${voice.name} ${voice.lang}`;
+    voicesSelect.appendChild(option);
+  });
+}
+
+function handleSpeech(text, box) {
+  setTextMessage(text);
+  speakText();
+  box.classList.add("active");
+  setTimeout(() => box.classList.remove("active"), 800);
+}
+
+const message = new SpeechSynthesisUtterance();
+
+function setTextMessage(text) {
+  message.text = text;
+}
+
+function speakText() {
+  speechSynthesis.speak(message);
+}
+
+function setVoice(e) {
+  message.voice = voices.find((voice) => voice.name === e.target.value);
+}
+
+// Event Listeners
+toggleButton.addEventListener("click", () => {
+  document.getElementById("text-box").classList.toggle("show");
+});
+closeButton.addEventListener("click", () => {
+  document.getElementById("text-box").classList.remove("show");
+});
+speechSynthesis.addEventListener("voiceschanged", getVoices);
+voicesSelect.addEventListener("change", setVoice);
+readButton.addEventListener("click", () => {
+  setTextMessage(textarea.value);
+  speakText();
 });
 
-settingsButton.addEventListener("click", () =>
-  settings.classList.toggle("hide")
-);
-settingsForm.addEventListener("change", (e) => {
-  difficulty = e.target.value;
-  localStorage.setItem("difficulty", difficulty);
-});
-
-// Init
-difficultySelect.value = difficulty;
-addWordToDom();
-text.focus();
+getVoices();
